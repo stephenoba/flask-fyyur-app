@@ -3,6 +3,7 @@ from flask_wtf import Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
 from wtforms.validators import DataRequired, AnyOf, URL
 
+
 class ShowForm(Form):
     artist_id = StringField(
         'artist_id'
@@ -15,6 +16,7 @@ class ShowForm(Form):
         validators=[DataRequired()],
         default= datetime.today()
     )
+
 
 class VenueForm(Form):
     name = StringField(
@@ -125,7 +127,6 @@ class VenueForm(Form):
     seeking_description = StringField(
         'seeking_description'
     )
-
 
 
 class ArtistForm(Form):
