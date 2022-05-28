@@ -10,7 +10,7 @@
 			ID: {{ venue.id }}
 		</p>
 		<div class="genres">
-			{% for genre in venue.genres %}
+			{% for genre in venue.genres.split(',') %}
 			<span class="genre">{{ genre }}</span>
 			{% endfor %}
 		</div>
@@ -76,6 +76,9 @@
 </section>
 
 <a href="/venues/{{ venue.id }}/edit"><button class="btn btn-primary btn-lg">Edit</button></a>
+<button id="delete-button" class="btn btn-danger btn-lg" data-id="{{ venue.id }}" onclick="deleteVenue(event)">
+	Delete
+</button>
 
 {% endblock %}
 

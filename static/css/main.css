@@ -209,3 +209,11 @@ h2.monospace {
 .subtitle {
   opacity: 0.5;
 }
+
+.error-message {
+    color: RGB(156, 25, 20);
+}
+
+.success-message {
+    color: RGB(19, 92, 12);
+}
