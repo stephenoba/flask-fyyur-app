@@ -110,8 +110,6 @@ class Show(db.Model):
     def __repr__(self):
         return f'<Show {self.id} venue: {self.venue_id} artist: {self.artist_id}>'
 
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
-
 # ----------------------------------------------------------------------------#
 # Filters.
 # ----------------------------------------------------------------------------#
@@ -156,11 +154,7 @@ def index():
 #  Venues
 #  ----------------------------------------------------------------
 
-
-@app.route('/venues')
-def venues():
-    # TODO: add num_upcoming_shows.
-    #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
+def venues_serializer():
     data = []
     states_query = db.session.query(Venue.state.distinct().label("state"))
 
@@ -177,6 +171,14 @@ def venues():
                 )
             )
             data.append(entry)
+    return data
+
+
+@app.route('/venues')
+def venues():
+    # TODO: add num_upcoming_shows.
+    #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
+    data = venues_serializer()
 
     # data = [{
     #   "city": "San Francisco",
