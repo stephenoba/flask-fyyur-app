@@ -65,8 +65,6 @@ class Venue(db.Model):
       db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.Text)
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
     def __repr__(self):
         return f'<Venue {self.id} {self.name}>'
 
@@ -87,16 +85,28 @@ class Artist(db.Model):
         db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.Text)
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
     def __repr__(self):
         return f'<Artist {self.id} {self.name}>'
 
 
-# class Genre(db.Model):
-#     __tablename__ = 'genre'
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(120), nullable=False)
+class Show(db.Model):
+    __tablename__ = 'show'
+
+    id = db.Column(db.Integer, primary_key=True)
+    venue_id = db.Column(
+        db.Integer,
+        db.ForeignKey('venue.id'),
+        nullable=False
+    )
+    artist_id = db.Column(
+        db.Integer,
+        db.ForeignKey('artist.id'),
+        nullable=False
+    )
+    start_time = db.Column(db.Datetime, nullable=False)
+
+    def __repr__(self):
+        return f'<Show {self.id} venue: {self.venue_id} artist: {self.artist_id}>'
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
