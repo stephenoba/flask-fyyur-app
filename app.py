@@ -5,7 +5,7 @@
 import os
 import sys
 import json
-from datetime import date
+from datetime import datetime
 import dateutil.parser
 import babel
 
@@ -118,7 +118,10 @@ class Show(db.Model):
 
 
 def format_datetime(value, format='medium'):
-    date = dateutil.parser.parse(value)
+    # date = dateutil.parser.parse(value)
+    date = value
+    if isinstance(value, str):
+        date = dateutil.parser.parse(value)
     if format == 'full':
         format = "EEEE MMMM, d, y 'at' h:mma"
     elif format == 'medium':
@@ -157,6 +160,9 @@ def index():
 #  ----------------------------------------------------------------
 def venue_serializer(venue):
     shows_query = db.session.query(Show).select_from(Venue).join(Show, Venue.id == Show.venue_id)
+    past_shows_query  = shows_query.filter(Show.start_time < datetime.now())
+    upcoming_shows_query = shows_query.filter(Show.start_time >= datetime.now())
+    
     data = {
         'id': venue.id,
         'name': venue.name,
@@ -170,11 +176,12 @@ def venue_serializer(venue):
         "seeking_talent": venue.seeking_talent,
         "seeking_description": venue.seeking_description,
         "image_link": venue.image_link,
-        'past_shows': shows_query.filter(Show.start_time < datetime.now()).all(),
-        'upcoming_shows': shows_query.filter(Show.start_time >= datetime.now()).all(),
-        "past_shows_count": 1,
-        "upcoming_shows_count": shows_query.filter(Show.id == venue.id).count()
+        'past_shows': past_shows_query.all(),
+        'upcoming_shows': upcoming_shows_query.all(),
+        "past_shows_count": past_shows_query.count(),
+        "upcoming_shows_count": upcoming_shows_query.count()
     }
+    print(data)
     return data
 
 
@@ -623,12 +630,25 @@ def create_artist_submission():
 
 #  Shows
 #  ----------------------------------------------------------------
-
+def show_serializer(show):
+    data ={}
+    data['venue_id'] = show.venue_id
+    data['venue_name'] = show.venue.name
+    data['artist_id'] = show.artist_id
+    data['artist_name'] = show.artist.name
+    data['artist_image'] = show.artist.image_link
+    data['start_time'] = show.start_time
+    
+    return data
+    
+ 
 @app.route('/shows')
 def shows():
     # displays list of shows at /shows
     # TODO: replace with real venues data.
-    data = [{
+    shows_query = db.session.query(Show)
+    data = [show_serializer(show) for show in shows_query.all()]
+    data_1 = [{
       "venue_id": 1,
       "venue_name": "The Musical Hop",
       "artist_id": 4,
