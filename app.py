@@ -5,8 +5,10 @@
 import os
 import sys
 import json
+from datetime import date
 import dateutil.parser
 import babel
+
 from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify
 from flask_moment import Moment
 from sqlalchemy import and_
@@ -153,6 +155,38 @@ def index():
 
 #  Venues
 #  ----------------------------------------------------------------
+def venue_serializer(venue):
+    shows_query = db.session.query(Show).select_from(Venue).join(Show, Venue.id == Show.venue_id)
+    data = {
+        'id': venue.id,
+        'name': venue.name,
+        "genres": venue.genres,
+        "address": venue.address,
+        "city": venue.city,
+        "state": venue.state,
+        "phone": venue.phone,
+        "website": venue.website_link,
+        "facebook_link": venue.facebook_link,
+        "seeking_talent": venue.seeking_talent,
+        "seeking_description": venue.seeking_description,
+        "image_link": venue.image_link,
+        'past_shows': shows_query.filter(Show.start_time < datetime.now()).all(),
+        'upcoming_shows': shows_query.filter(Show.start_time >= datetime.now()).all(),
+        "past_shows_count": 1,
+        "upcoming_shows_count": shows_query.filter(Show.id == venue.id).count()
+    }
+    return data
+
+
+def venue_list_serializer(data):
+    new_data = []
+
+    for venue in data:
+        new_data.append(
+            venue_serializer(venue)
+        )
+    return new_data
+
 
 def venues_serializer():
     data = []
@@ -164,10 +198,12 @@ def venues_serializer():
             entry = dict()
             entry['city'] = city_row.city
             entry['state'] = state_row.state
-            entry['venues'] = Venue.query.filter(
-                and_(
-                    Venue.state == state_row.state,
-                    Venue.city == city_row.city
+            entry['venues'] = venue_list_serializer(
+                Venue.query.filter(
+                    and_(
+                        Venue.state == state_row.state,
+                        Venue.city == city_row.city
+                    )
                 )
             )
             data.append(entry)
@@ -224,7 +260,7 @@ def search_venues():
 def show_venue(venue_id):
     # shows the venue page with the given venue_id
     # TODO: add remaining data for show
-    data = Venue.query.get_or_404(venue_id)
+    data = venue_serializer(Venue.query.filter(Venue.id == venue_id).first())
     data1 = {
       "id": 1,
       "name": "The Musical Hop",
@@ -642,12 +678,32 @@ def create_shows():
 def create_show_submission():
     # called to create new shows in the db, upon submitting new show listing form
     # TODO: insert form data as a new Show record in the db, instead
+    form = ShowForm(request.form)
+    data = form.data.copy()
+    _ = data.pop('csrf_token')
+    error = False
+    try:
+        show = Show(**data)
+        db.session.add(show)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        error = True
+        sys.stdout.write(f'{e}')
+    finally:
+        db.session.close()
+        if not error:
+            flash(
+                'Show was successfully listed!',
+                category='success-message'
+            )
+            return redirect(url_for('shows'))
+        else:
+            flash(
+                'An Error occurred while creating Show',
+                category='error-message'
+            )
 
-    # on successful db insert, flash success
-    flash('Show was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Show could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     return render_template('pages/home.html')
 
 
