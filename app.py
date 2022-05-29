@@ -371,16 +371,17 @@ def delete_venue(venue_id):
 @app.route('/artists')
 def artists():
     # TODO: replace with real data returned from querying the database
-    data = [{
-      "id": 4,
-      "name": "Guns N Petals",
-    }, {
-      "id": 5,
-      "name": "Matt Quevedo",
-    }, {
-      "id": 6,
-      "name": "The Wild Sax Band",
-    }]
+    data = db.session.query(Artist).all()
+    # data = [{
+    #   "id": 4,
+    #   "name": "Guns N Petals",
+    # }, {
+    #   "id": 5,
+    #   "name": "Matt Quevedo",
+    # }, {
+    #   "id": 6,
+    #   "name": "The Wild Sax Band",
+    # }]
     return render_template('pages/artists.html', artists=data)
 
 
@@ -404,6 +405,7 @@ def search_artists():
 def show_artist(artist_id):
     # shows the artist page with the given artist_id
     # TODO: replace with real artist data from the artist table, using artist_id
+    data = Artist.query.get_or_404(artist_id)
     data1 = {
       "id": 4,
       "name": "Guns N Petals",
@@ -475,7 +477,7 @@ def show_artist(artist_id):
       "past_shows_count": 0,
       "upcoming_shows_count": 3,
     }
-    data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
+    # data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
     return render_template('pages/show_artist.html', artist=data)
 
 
@@ -484,7 +486,7 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
     form = ArtistForm()
-    artist={
+    artist = {
       "id": 4,
       "name": "Guns N Petals",
       "genres": ["Rock n Roll"],
@@ -549,13 +551,37 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
     # called upon submitting the new artist listing form
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
+    form = ArtistForm(request.form)
+    data = form.data.copy()
+    _ = data.pop('csrf_token')
+    artist_id = None
+    genres = data.pop('genres')
+    error = False
+    try:
+        genres = convert_list_to_csv(genres)
+        artist = Artist(**data, genres=genres)
+        db.session.add(artist)
+        db.session.commit()
+        artist_id = artist.id
+    except Exception as e:
+        db.session.rollback()
+        error = True
+        sys.stdout.write(e)
+    finally:
+        db.session.close()
+        if not error:
+            flash(
+                f'Artist {form.name.data} was successfully listed!',
+                category='success-message'
+            )
+            return redirect(url_for('show_artist', artist_id=artist_id))
+        else:
+            flash(
+                f'An Error occurred while creating Artist {form.name.data}',
+                category='error-message'
+            )
 
     # on successful db insert, flash success
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
     return render_template('pages/home.html')
 
 
@@ -566,7 +592,7 @@ def create_artist_submission():
 def shows():
     # displays list of shows at /shows
     # TODO: replace with real venues data.
-    data=[{
+    data = [{
       "venue_id": 1,
       "venue_name": "The Musical Hop",
       "artist_id": 4,
