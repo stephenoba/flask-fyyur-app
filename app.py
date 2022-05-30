@@ -159,8 +159,9 @@ def index():
 #  Venues
 #  ----------------------------------------------------------------
 def venue_serializer(venue):
-    shows_query = db.session.query(Show).select_from(Venue).join(Show, Venue.id == Show.venue_id)
-    past_shows_query  = shows_query.filter(Show.start_time < datetime.now())
+    shows_query = db.session.query(Show).select_from(
+        Venue).join(Show, Venue.id == Show.venue_id).filter(Show.venue_id == venue.id)
+    past_shows_query = shows_query.filter(Show.start_time < datetime.now())
     upcoming_shows_query = shows_query.filter(Show.start_time >= datetime.now())
     
     data = {
@@ -218,31 +219,7 @@ def venues_serializer():
 
 @app.route('/venues')
 def venues():
-    # TODO: add num_upcoming_shows.
-    #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
     data = venues_serializer()
-
-    # data = [{
-    #   "city": "San Francisco",
-    #   "state": "CA",
-    #   "venues": [{
-    #     "id": 1,
-    #     "name": "The Musical Hop",
-    #     "num_upcoming_shows": 0,
-    #   }, {
-    #     "id": 3,
-    #     "name": "Park Square Live Music & Coffee",
-    #     "num_upcoming_shows": 1,
-    #   }]
-    # }, {
-    #   "city": "New York",
-    #   "state": "NY",
-    #   "venues": [{
-    #     "id": 2,
-    #     "name": "The Dueling Pianos Bar",
-    #     "num_upcoming_shows": 0,
-    #   }]
-    # }]
     return render_template('pages/venues.html', areas=data)
 
 
@@ -630,14 +607,12 @@ def create_artist_submission():
 #  Shows
 #  ----------------------------------------------------------------
 def show_serializer(show):
-    data ={}
-    data['venue_id'] = show.venue_id
-    data['venue_name'] = show.venue.name
-    data['artist_id'] = show.artist_id
-    data['artist_name'] = show.artist.name
-    data['artist_image'] = show.artist.image_link
-    data['start_time'] = show.start_time
-    
+    data = {
+        'venue_id': show.venue_id,
+        'venue_name': show.venue.name,
+        'artist_id': show.artist_id,
+            'artist_name': show.artist.name, 'artist_image': show.artist.image_link, 'start_time': show.start_time}
+
     return data
     
  
