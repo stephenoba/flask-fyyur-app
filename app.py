@@ -181,7 +181,6 @@ def venue_serializer(venue):
         "past_shows_count": past_shows_query.count(),
         "upcoming_shows_count": upcoming_shows_query.count()
     }
-    print(data)
     return data
 
 
