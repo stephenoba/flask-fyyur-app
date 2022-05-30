@@ -606,7 +606,7 @@ def create_artist_submission():
 
 #  Shows
 #  ----------------------------------------------------------------
-def show_serializer(show):
+def show_serializer(show, content_type=None):
     data = {
         'venue_id': show.venue_id,
         'venue_name': show.venue.name,
@@ -622,7 +622,6 @@ def show_serializer(show):
 @app.route('/shows')
 def shows():
     # displays list of shows at /shows
-    # TODO: replace with real venues data.
     shows_query = db.session.query(Show)
     data = [show_serializer(show) for show in shows_query.all()]
     data_1 = [{
