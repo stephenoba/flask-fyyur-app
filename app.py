@@ -4,12 +4,11 @@
 
 import os
 import sys
-import json
 from datetime import datetime
 import dateutil.parser
 import babel
 
-from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask_moment import Moment
 from sqlalchemy import and_
 from flask_sqlalchemy import SQLAlchemy
@@ -28,8 +27,6 @@ app.config.from_object('config')
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
-
-# TODO: connect to a local postgresql database
 
 # ----------------------------------------------------------------------------#
 # Models.
@@ -223,26 +220,43 @@ def venues():
     return render_template('pages/venues.html', areas=data)
 
 
+def search_serializer(search_term, content_type=Venue):
+    response = {
+        "count": 0,
+        "data": []
+    }
+
+    if search_term:
+        search_query = f"%{search_term}%"
+        _query = content_type.query.filter(content_type.name.ilike(search_query))
+        if content_type == Venue:
+            response = {
+                "count": _query.count(),
+                "data": [venue_serializer(venue) for venue in _query.all()]
+            }
+        if content_type == Artist:
+            response = {
+                "count": _query.count(),
+                "data": [artist_serializer(artist) for artist in _query.all()]
+            }
+    return response
+
+
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-    # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
+    # implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-    response = {
-      "count": 1,
-      "data": [{
-        "id": 2,
-        "name": "The Dueling Pianos Bar",
-        "num_upcoming_shows": 0,
-      }]
-    }
-    return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+    search_term = request.form.get('search_term', '')
+    response = search_serializer(search_term)
+    return render_template(
+        'pages/search_venues.html',
+        results=response, search_term=search_term)
 
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
     # shows the venue page with the given venue_id
-    # TODO: add remaining data for show
     data = venue_serializer(Venue.query.get_or_404(venue_id))
     return render_template('pages/show_venue.html', venue=data)
 
@@ -299,8 +313,9 @@ def delete_venue(venue_id):
         venue = Venue.query.get(venue_id)
         db.session.delete(venue)
         db.session.commit()
-    except:
+    except Exception as e:
         db.session.rollback()
+        sys.stdout.write(e)
     finally:
         db.session.close()
     return jsonify({'success': True})
@@ -310,25 +325,21 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 @app.route('/artists')
 def artists():
-    # TODO: replace with real data returned from querying the database
     data = db.session.query(Artist).all()
     return render_template('pages/artists.html', artists=data)
 
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
-    # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
+    # implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
     # search for "band" should return "The Wild Sax Band".
-    response={
-      "count": 1,
-      "data": [{
-        "id": 4,
-        "name": "Guns N Petals",
-        "num_upcoming_shows": 0,
-      }]
-    }
-    return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
+    search_term = request.form.get('search_term', '')
+    response = search_serializer(search_term, content_type=Artist)
+    return render_template(
+        'pages/search_artists.html',
+        results=response,
+        search_term=search_term)
 
 
 def artist_serializer(artist):
@@ -369,8 +380,7 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
     form = ArtistForm()
-    # TODO: populate form with fields from artist with ID <artist_id>
-    artist = Artist.query.get_or_404(venue_id)
+    artist = Artist.query.get_or_404(artist_id)
 
     form.name.data = artist.name
     form.city.data = artist.city
@@ -388,47 +398,45 @@ def edit_artist(artist_id):
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
-    # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
     form = ArtistForm(request.form)
     data = form.data.copy()
     _ = data.pop('csrf_token')
     artist = Artist.query.get_or_404(artist_id)
-    if venue_query:  # dont need
-        genres = data.pop('genres')
-        error = False
-        try:
-            genres = convert_list_to_csv(genres)
-            artist.name = form.name.data
-            artist.city = form.city.data
-            artist.state = form.state.data
-            artist.phone = form.phone.data
-            artist.genres = genres
-            artist.address = form.address.data
-            artist.seeking_talent = form.seeking_venue.data
-            artist.seeking_description = form.seeking_description.data
-            artist.facebook_link = form.facebook_link.data
-            artist.website_link = form.website_link.data
-            artist.image_link = form.image_link.data
+    genres = data.pop('genres')
+    error = False
+    try:
+        genres = convert_list_to_csv(genres)
+        artist.name = form.name.data
+        artist.city = form.city.data
+        artist.state = form.state.data
+        artist.phone = form.phone.data
+        artist.genres = genres
+        artist.address = form.address.data
+        artist.seeking_talent = form.seeking_venue.data
+        artist.seeking_description = form.seeking_description.data
+        artist.facebook_link = form.facebook_link.data
+        artist.website_link = form.website_link.data
+        artist.image_link = form.image_link.data
 
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            error = True
-            print(e)
-        finally:
-            db.session.close()
-            if not error:
-                flash(
-                    f'Artist {form.name.data} was updated updated!',
-                    category='success-message'
-                )
-                return redirect(url_for('show_artist', artist_id=arist_id))
-            else:
-                flash(
-                    f'An Error occurred while updating Venue {form.name.data}',
-                    category='error-message'
-                )
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        error = True
+        print(e)
+    finally:
+        db.session.close()
+        if not error:
+            flash(
+                f'Artist {form.name.data} was updated updated!',
+                category='success-message'
+            )
+            return redirect(url_for('show_artist', artist_id=artist_id))
+        else:
+            flash(
+                f'An Error occurred while updating Venue {form.name.data}',
+                category='error-message'
+            )
     return redirect(url_for('show_artist', artist_id=artist_id))
 
 
@@ -457,42 +465,41 @@ def edit_venue_submission(venue_id):
     form = VenueForm(request.form)
     data = form.data.copy()
     _ = data.pop('csrf_token')
-    venue= Venue.query.get_or_404(venue_id)
-    if venue_query: # not needed
-        genres = data.pop('genres')
-        error = False
-        try:
-            genres = convert_list_to_csv(genres)
-            venue.name = form.name.data
-            venue.city = form.city.data
-            venue.state = form.state.data
-            venue.phone = form.phone.data
-            venue.genres = genres
-            venue.address = form.address.data
-            venue.seeking_talent = form.seeking_talent.data
-            venue.seeking_description = form.seeking_description.data
-            venue.facebook_link = form.facebook_link.data
-            venue.website_link = form.website_link.data
-            venue.image_link = form.image_link.data
+    venue = Venue.query.get_or_404(venue_id)
+    genres = data.pop('genres')
+    error = False
+    try:
+        genres = convert_list_to_csv(genres)
+        venue.name = form.name.data
+        venue.city = form.city.data
+        venue.state = form.state.data
+        venue.phone = form.phone.data
+        venue.genres = genres
+        venue.address = form.address.data
+        venue.seeking_talent = form.seeking_talent.data
+        venue.seeking_description = form.seeking_description.data
+        venue.facebook_link = form.facebook_link.data
+        venue.website_link = form.website_link.data
+        venue.image_link = form.image_link.data
 
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            error = True
-            print(e)
-        finally:
-            db.session.close()
-            if not error:
-                flash(
-                    f'Venue {form.name.data} was successfully updated!',
-                    category='success-message'
-                )
-                return redirect(url_for('show_venue', venue_id=venue_id))
-            else:
-                flash(
-                    f'An Error occurred while updating Venue {form.name.data}',
-                    category='error-message'
-                )
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        error = True
+        print(e)
+    finally:
+        db.session.close()
+        if not error:
+            flash(
+                f'Venue {form.name.data} was successfully updated!',
+                category='success-message'
+            )
+            return redirect(url_for('show_venue', venue_id=venue_id))
+        else:
+            flash(
+                f'An Error occurred while updating Venue {form.name.data}',
+                category='error-message'
+            )
     return redirect(url_for('show_venue', venue_id=venue_id))
 
 
