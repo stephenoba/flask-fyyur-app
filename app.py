@@ -390,28 +390,26 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
     # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
-    form = VenueForm(request.form)
+    form = ArtistForm(request.form)
     data = form.data.copy()
     _ = data.pop('csrf_token')
-    venue_query = Venue.query.filter(Venue.id == venue_id)
-    if venue_query:
-        venue = venue_query.first()
-        venue_id = venue.id
+    artist = Artist.query.get_or_404(artist_id)
+    if venue_query:  # dont need
         genres = data.pop('genres')
         error = False
         try:
             genres = convert_list_to_csv(genres)
-            venue.name = form.name.data
-            venue.city = form.city.data
-            venue.state = form.state.data
-            venue.phone = form.phone.data
-            venue.genres = genres
-            venue.address = form.address.data
-            venue.seeking_talent = form.seeking_talent.data
-            venue.seeking_description = form.seeking_description.data
-            venue.facebook_link = form.facebook_link.data
-            venue.website_link = form.website_link.data
-            venue.image_link = form.image_link.data
+            artist.name = form.name.data
+            artist.city = form.city.data
+            artist.state = form.state.data
+            artist.phone = form.phone.data
+            artist.genres = genres
+            artist.address = form.address.data
+            artist.seeking_talent = form.seeking_venue.data
+            artist.seeking_description = form.seeking_description.data
+            artist.facebook_link = form.facebook_link.data
+            artist.website_link = form.website_link.data
+            artist.image_link = form.image_link.data
 
             db.session.commit()
         except Exception as e:
@@ -422,10 +420,10 @@ def edit_artist_submission(artist_id):
             db.session.close()
             if not error:
                 flash(
-                    f'Venue {form.name.data} was successfully updated!',
+                    f'Artist {form.name.data} was updated updated!',
                     category='success-message'
                 )
-                return redirect(url_for('show_venue', venue_id=venue_id))
+                return redirect(url_for('show_artist', artist_id=arist_id))
             else:
                 flash(
                     f'An Error occurred while updating Venue {form.name.data}',
@@ -459,10 +457,8 @@ def edit_venue_submission(venue_id):
     form = VenueForm(request.form)
     data = form.data.copy()
     _ = data.pop('csrf_token')
-    venue_query = Venue.query.filter(Venue.id == venue_id)
-    if venue_query:
-        venue = venue_query.first()
-        venue_id = venue.id
+    venue= Venue.query.get_or_404(venue_id)
+    if venue_query: # not needed
         genres = data.pop('genres')
         error = False
         try:
